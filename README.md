@@ -18,5 +18,8 @@ optional arguments:
   -e, --existing        connect to existing environments and do not spawn them
 ````
 
-###Rough usage diagram:
+###Rough usage diagrams
+####On one computer:
 ![diagram](./diagram.png)
+####On multiple computers by LAN:
+![diagram_by_lan](./diagram_by_lan.png)
