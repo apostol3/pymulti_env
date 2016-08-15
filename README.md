@@ -17,3 +17,6 @@ optional arguments:
                         enviroments pipe name (default: nlab_mlt)
   -e, --existing        connect to exiting enviroments and do not spawn them
 ````
+
+###Rough usage diagram:
+![diagram](.\diagram.png)
