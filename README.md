@@ -19,4 +19,4 @@ optional arguments:
 ````
 
 ###Rough usage diagram:
-![diagram](.\diagram.png)
+![diagram](./diagram.png)
