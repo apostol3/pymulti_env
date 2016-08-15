@@ -17,13 +17,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="multiplexer utility for nlab")
     parser.add_argument("-O", "--nlab-pipe", help="nlab pipe name (default: %(default)s)",
                         metavar="name", type=str, dest="nlab_name", default="nlab")
-    parser.add_argument("-I", "--envs-pipe", help="enviroments pipe name (default: %(default)s)",
+    parser.add_argument("-I", "--envs-pipe", help="environments pipe name (default: %(default)s)",
                         metavar="name", type=str, dest="envs_name", default="nlab_mlt")
 
-    parser.add_argument("-e", "--existing", help="connect to exiting enviroments and do not spawn them",
+    parser.add_argument("-e", "--existing", help="connect to existing environments and do not spawn them",
                         action="store_false", dest="spawn")
-    parser.add_argument("count", metavar="N", type=int, help="count of enviroments to start")
-    parser.add_argument("command", metavar="exec", type=str, help="command to execute enviroments")
+    parser.add_argument("count", metavar="N", type=int, help="count of environments to start")
+    parser.add_argument("command", metavar="exec", type=str, help="command to execute environments")
 
     args = parser.parse_args()
 
@@ -98,7 +98,7 @@ if __name__ == "__main__":
                     esi_n.data.extend([None] * e.state.count)
                     continue
                 else:
-                    print("get {} header from {}. stopping other enviroments and nlab"
+                    print("get {} header from {}. stopping other environments and nlab"
                           .format(e.is_ok.name, e.pipe.name))
                     [e.stop() for e in envs if
                      e.is_ok == pynlab.VerificationHeader.ok or e.is_ok == pynlab.VerificationHeader.restart]
@@ -127,7 +127,7 @@ if __name__ == "__main__":
                     e.restart(nri_e)
                 continue
             else:
-                print("get {} header from nlab. stopping enviroments".format(lab.is_ok.name))
+                print("get {} header from nlab. stopping environments".format(lab.is_ok.name))
                 [e.stop() for e in envs]
                 print("stopped")
                 exit()
