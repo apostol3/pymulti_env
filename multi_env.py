@@ -2,24 +2,26 @@ import argparse
 import atexit
 import multiprocessing as mp
 import subprocess
+from urllib.parse import urlparse
 
 import pynlab
 
 __author__ = "apostol3"
 
 
-def spawn_func(command, name, i):
-    subprocess.Popen("{exec} --pipe {name}_{id}".format(exec=command, name=name, id=i), stdout=subprocess.DEVNULL,
+def spawn_func(command, uri):
+    subprocess.Popen("{exec} --uri {uri}".format(exec=command, uri=uri).split(), stdout=subprocess.DEVNULL,
                      stderr=subprocess.DEVNULL)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="multiplexer utility for nlab")
-    parser.add_argument("-O", "--nlab-pipe", help="nlab pipe name (default: %(default)s)",
-                        metavar="name", type=str, dest="nlab_name", default="nlab")
-    parser.add_argument("-I", "--envs-pipe", help="environments pipe name (default: %(default)s)",
-                        metavar="name", type=str, dest="envs_name", default="nlab_mlt")
-
+    parser.add_argument("-I", "--envs_uri", help="""enviroments URI in format '[tcp|winpipe]://hostname(/pipe_name|:port)'
+                                                (default: %(default)s""",
+                        metavar="name", type=str, dest="envs_uri", default="tcp://127.0.0.1:15005")
+    parser.add_argument("-O", "--nlab_uri", help="""nlab URI in format '[tcp|winpipe]://hostname(/pipe_name|:port)'
+                                                (default: %(default)s""",
+                        metavar="name", type=str, dest="nlab_uri", default="tcp://127.0.0.1:5005")
     parser.add_argument("-e", "--existing", help="connect to existing environments and do not spawn them",
                         action="store_false", dest="spawn")
     parser.add_argument("count", metavar="N", type=int, help="count of environments to start")
@@ -27,25 +29,32 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    pipe_str = "\\\\.\\pipe\\{}"
+    # TODO: Add TCP
+    lab = pynlab.NLab(args.nlab_uri)
 
-    lab = pynlab.NLab(pipe_str.format(args.nlab_name))
+    env_uri = urlparse(args.envs_uri)
+    if env_uri.scheme == 'tcp':
+        uris = ['tcp://{}:{}'.format(env_uri.hostname, env_uri.port + i) for i in range(args.count)]
+    elif env_uri.scheme == 'winpipe':
+        uris = ['{}_{}'.format(args.envs_uri, i) for i in range(args.count)]
+    else:
+        raise RuntimeError('URI protocol must be tcp or winpipe')
 
-    envs = [pynlab.Env(pipe_str.format("{}_{}".format(args.envs_name, i)))
-            for i in range(args.count)]
+    envs = [pynlab.Env(i) for i in uris]
 
     print("connecting to nlab")
     if lab.connect():
         raise RuntimeError("nlab connection failed")
     print("connected")
 
-    print("creating {} pipes: {}".format(args.count, ", ".join(['"{}"'.format(e.pipe.name) for e in envs])))
+    print("creating {} pipes: {}".format(args.count, ", ".join(['"{}"'.format(e.uri) for e in envs])))
     [e.create() for e in envs]
-    print("pipes created: {handlers}".format(handlers=", ".join([str(e.pipe.hPipe) for e in envs])))
+    print("pipes created: {handlers}".format(handlers=", ".join([str(e.uri) for e in envs])))
 
     if args.spawn:
         print("starting {} subprocesses".format(args.count))
-        subs = [mp.Process(target=spawn_func, args=(args.command, args.envs_name, i)) for i in range(args.count)]
+
+        subs = [mp.Process(target=spawn_func, args=(args.command, i)) for i in uris]
         [s.start() for s in subs]
         print("all subs started. PID: {pids}".format(pids=", ".join([str(s.pid) for s in subs])))
         atexit.register(lambda: [s.terminate() for s in subs])
@@ -66,10 +75,10 @@ if __name__ == "__main__":
             esi_n.outcount = esi.outcount
         else:
             if esi_n.incount != esi.incount or esi_n.outcount != esi.outcount:
-                raise RuntimeError("Different specification received from {}".format(e.pipe.name))
+                raise RuntimeError("Different specification received from {}".format(e.uri))
         esi_n.count += esi.count
         print("get count: {}, incount: {}, outcount: {} from {}"
-              .format(esi.count, esi.incount, esi.outcount, e.pipe.name))
+              .format(esi.count, esi.incount, esi.outcount, e.uri))
     print("received start info from subs. count: {}, incount: {}, outcount: {}"
           .format(esi_n.count, esi_n.incount, esi_n.outcount))
 
@@ -99,7 +108,7 @@ if __name__ == "__main__":
                     continue
                 else:
                     print("get {} header from {}. stopping other environments and nlab"
-                          .format(e.is_ok.name, e.pipe.name))
+                          .format(e.is_ok.name, e.uri))
                     [e.stop() for e in envs if
                      e.is_ok == pynlab.VerificationHeader.ok or e.is_ok == pynlab.VerificationHeader.restart]
                     lab.stop()
