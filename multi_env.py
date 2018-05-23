@@ -29,7 +29,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # TODO: Add TCP
     lab = pynlab.NLab(args.nlab_uri)
 
     env_uri = urlparse(args.envs_uri)
@@ -90,6 +89,7 @@ if __name__ == "__main__":
     for e in envs:
         nsi_e = pynlab.NStartInfo()
         nsi_e.count = e.state.count
+        nsi_e.round_seed = lab.state.round_seed
         e.set_start_info(nsi_e)
         e.lasthead = pynlab.VerificationHeader.ok
 
@@ -111,6 +111,7 @@ if __name__ == "__main__":
                           .format(e.is_ok.name, e.uri))
                     [e.stop() for e in envs if
                      e.is_ok == pynlab.VerificationHeader.ok or e.is_ok == pynlab.VerificationHeader.restart]
+                    [e.terminate() for e in envs]
                     lab.stop()
                     print("stopped")
                     exit()
@@ -133,11 +134,13 @@ if __name__ == "__main__":
                 for e in envs:
                     nri_e = pynlab.NRestartInfo()
                     nri_e.count = e.state.count
+                    nri_e.round_seed = lab.state.round_seed
                     e.restart(nri_e)
                 continue
             else:
                 print("get {} header from nlab. stopping environments".format(lab.is_ok.name))
                 [e.stop() for e in envs]
+                [e.terminate() for e in envs]
                 print("stopped")
                 exit()
 
